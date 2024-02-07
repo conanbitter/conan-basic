@@ -3,8 +3,10 @@
 #include <stdbool.h>
 
 #define INPUT_BUFFER_SIZE 256
+#define NAME_BUFFER_SIZE 256
 
 char input_buffer[INPUT_BUFFER_SIZE];
+char name_buffer[NAME_BUFFER_SIZE];
 
 bool is_number(char symbol) {
     return symbol >= '0' && symbol <= '9';
@@ -12,6 +14,10 @@ bool is_number(char symbol) {
 
 bool is_space(char symbol) {
     return symbol == ' ' || symbol == '\t';
+}
+
+bool is_alpha(char symbol) {
+    return (symbol >= 'A' && symbol <= 'Z') || (symbol >= 'a' && symbol <= 'z');
 }
 
 char* caret;
@@ -23,6 +29,22 @@ int read_int() {
         caret++;
     }
     return result;
+}
+
+int read_name() {
+    char* name = name_buffer;
+    int length = 0;
+    while (*caret != '\0' && is_alpha(*caret) && length < NAME_BUFFER_SIZE) {
+        if (*caret >= 'A' && *caret <= 'Z') {
+            *name = *caret;
+        } else {
+            *name = *caret - 'a' + 'A';
+        }
+        *caret++;
+        *name++;
+        length++;
+    }
+    *name = '\0';
 }
 
 bool assert_and_skip_spaces() {
@@ -63,13 +85,17 @@ void get_input() {
 
 void process_input() {
     caret = input_buffer;
-    if (is_number(input_buffer[0])) {
+    if (is_number(*caret)) {
         int line_num = read_int();
         printf("number %d\n", line_num);
         if (assert_and_skip_spaces() == 1) {
             printf("Syntax error: no spaces after line number\n");
             return;
         }
+    }
+    if (is_alpha(*caret)) {
+        read_name();
+        printf("name \"%s\"\n", name_buffer);
     }
     printf(": \"%s\"\n", caret);
 }
