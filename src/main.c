@@ -31,7 +31,7 @@ int read_int() {
     return result;
 }
 
-int read_name() {
+void read_name() {
     char* name = name_buffer;
     int length = 0;
     while (*caret != '\0' && is_alpha(*caret) && length < NAME_BUFFER_SIZE) {
@@ -83,6 +83,8 @@ void get_input() {
     }
 }
 
+bool working;
+
 void process_input() {
     caret = input_buffer;
     if (is_number(*caret)) {
@@ -95,6 +97,10 @@ void process_input() {
     }
     if (is_alpha(*caret)) {
         read_name();
+        if (strcmp("EXIT", name_buffer) == 0) {
+            working = false;
+            return;
+        }
         printf("name \"%s\"\n", name_buffer);
     }
     printf(": \"%s\"\n", caret);
@@ -102,7 +108,8 @@ void process_input() {
 
 int main() {
     printf("Hello world!\n");
-    while (1) {
+    working = true;
+    while (working) {
         get_input();
         process_input();
     }
