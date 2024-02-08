@@ -3,11 +3,12 @@
 #include <stdbool.h>
 
 #define INPUT_BUFFER_SIZE 256
-#define NAME_BUFFER_SIZE 256
+#define STRING_BUFFER_SIZE 256
 #define KEYWORD_COUNT 49
 
 char input_buffer[INPUT_BUFFER_SIZE];
-char string_buffer[NAME_BUFFER_SIZE];
+char string_buffer[STRING_BUFFER_SIZE];
+int string_buffer_length;
 
 typedef enum TokenType {
     TOKEN_COMMA,
@@ -266,8 +267,8 @@ bool is_divider() {
 
 void read_name() {
     char* name = string_buffer;
-    int length = 0;
-    while (*caret != '\0' && (is_alpha(*caret) || is_number(*caret) || *caret == '_' || *caret == '.') && length < NAME_BUFFER_SIZE) {
+    string_buffer_length = 0;
+    while (*caret != '\0' && (is_alpha(*caret) || is_number(*caret) || *caret == '_' || *caret == '.') && string_buffer_length < STRING_BUFFER_SIZE) {
         if (*caret >= 'a' && *caret <= 'z') {
             *name = *caret - 'a' + 'A';
         } else {
@@ -275,7 +276,7 @@ void read_name() {
         }
         *caret++;
         *name++;
-        length++;
+        string_buffer_length++;
     }
     *name = '\0';
 }
@@ -283,12 +284,12 @@ void read_name() {
 bool read_string() {
     caret++;
     char* name = string_buffer;
-    int length = 0;
-    while (*caret != '\0' && *caret != '"' && length < NAME_BUFFER_SIZE) {
+    string_buffer_length = 0;
+    while (*caret != '\0' && *caret != '"' && string_buffer_length < STRING_BUFFER_SIZE) {
         *name = *caret;
         *caret++;
         *name++;
-        length++;
+        string_buffer_length++;
     }
     *name = '\0';
     if (*caret == '"') {
@@ -311,7 +312,7 @@ bool get_token() {
     }
     if (*caret == '"') {
         if (!read_string()) {
-            printf(" [STR: \"%s\"]", string_buffer);
+            printf(" [STR: \"%s\" (%d)]", string_buffer, string_buffer_length);
             return false;
         } else {
             printf(" [Error]");
@@ -331,6 +332,11 @@ bool get_token() {
     // TODO float numbers
     if (is_alpha(*caret)) {
         read_name();
+        char sigil = '\0';
+        if (*caret == '$' || *caret == '#' || *caret == '!' || *caret == '%') {
+            sigil = *caret;
+            caret++;
+        }
         if (!is_divider()) {
             printf(" [Error]");
             return true;
@@ -341,15 +347,10 @@ bool get_token() {
                 return false;
             }
         }
-        char sigil = '\0';
-        if (*caret == '$' || *caret == '#' || *caret == '!' || *caret == '%') {
-            sigil = *caret;
-            caret++;
-        }
         if (sigil != '\0') {
-            printf(" [NAME: \"%s\" %c]", string_buffer, sigil);
+            printf(" [NAME: \"%s\" %c (%d)]", string_buffer, sigil, string_buffer_length);
         } else {
-            printf(" [NAME: \"%s\"]", string_buffer);
+            printf(" [NAME: \"%s\" (%d)]", string_buffer, string_buffer_length);
         }
         return false;
     }
