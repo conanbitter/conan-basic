@@ -17,8 +17,6 @@ int32_t int_data;
 char sigil;
 
 typedef enum TokenType {
-    TOKEN_ERROR,
-    TOKEN_EOF,
     TOKEN_COMMA,
     TOKEN_COLON,
     TOKEN_SEMICOLON,
@@ -41,6 +39,8 @@ typedef enum TokenType {
     TOKEN_STR,
     TOKEN_FLOAT,
     TOKEN_DOUBLE,
+    TOKEN_ERROR,
+    TOKEN_EOF,
     TOKEN_KEYWORD,
 } TokenType;
 
@@ -449,15 +449,69 @@ void process_input() {
     shrink_line_length = shcaret - (char*)shrink_line;
 }
 
+void print_string(uint8_t** point) {
+    int string_length = **point;
+    (*point)++;
+    printf("%.*s", string_length, (char*)(*point));
+    (*point) += string_length;
+}
+
+void print_shrink_line() {
+    uint8_t* point = shrink_line;
+    while (true) {
+        TokenType token = *point;
+        point++;
+        switch (token) {
+            case TOKEN_NAME:
+                char sigil = *point;
+                point++;
+                print_string(&point);
+                if (sigil != '\0') {
+                    printf("%c", sigil);
+                }
+                break;
+
+            case TOKEN_INT:
+                int32_t data;
+                memcpy(&data, point, 4);
+                printf("%d", data);
+                point += 4;
+                break;
+
+            case TOKEN_STR:
+                printf("\"");
+                print_string(&point);
+                printf("\"");
+                break;
+
+            case TOKEN_FLOAT:
+                print_string(&point);
+                break;
+
+            default:
+                if (token >= TOKEN_KEYWORD) {
+                    printf("%s", keywords[token - TOKEN_KEYWORD]);
+                } else if (token <= TOKEN_SMLEQ) {
+                    printf("%s", small_tokens[token]);
+                }
+                break;
+        }
+        if (point - shrink_line < shrink_line_length) {
+            printf(" ");
+        } else {
+            break;
+        }
+    }
+}
+
 int main() {
     printf("Hello world!\n");
     working = true;
     while (working) {
         get_input();
+        // strcpy(input_buffer, "12 if total#<>3 then print \"Total is\";   total# else  msg$ = \"Get\"+5");
         process_input();
-        for (int i = 0; i < shrink_line_length; i++) {
-            printf("[%d (%c)]\n", shrink_line[i], shrink_line[i]);
-        }
+        print_shrink_line();
         printf("\n");
     }
     return 0;
