@@ -1,16 +1,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define INPUT_BUFFER_SIZE 256
 #define STRING_BUFFER_SIZE 256
+#define SHRINK_LINE_SIZE 256
 #define KEYWORD_COUNT 49
 
 char input_buffer[INPUT_BUFFER_SIZE];
 char string_buffer[STRING_BUFFER_SIZE];
 int string_buffer_length;
+uint8_t shrink_line[SHRINK_LINE_SIZE];
+int shrink_line_length;
+int32_t int_data;
+char sigil;
 
 typedef enum TokenType {
+    TOKEN_ERROR,
+    TOKEN_EOF,
     TOKEN_COMMA,
     TOKEN_COLON,
     TOKEN_SEMICOLON,
@@ -29,11 +37,11 @@ typedef enum TokenType {
     TOKEN_BIGEQ,
     TOKEN_SMLEQ,
     TOKEN_NAME,
-    TOKEN_KEYWORD,
     TOKEN_INT,
     TOKEN_STR,
     TOKEN_FLOAT,
     TOKEN_DOUBLE,
+    TOKEN_KEYWORD,
 } TokenType;
 
 const char* small_tokens[] = {
@@ -305,62 +313,67 @@ void skip_spaces() {
     }
 }
 
-bool get_token() {
+TokenType get_token() {
     if (*caret == '\0') {
-        printf(" [EOF]");
-        return true;
+        return TOKEN_EOF;
     }
     if (*caret == '"') {
         if (!read_string()) {
-            printf(" [STR: \"%s\" (%d)]", string_buffer, string_buffer_length);
-            return false;
+            return TOKEN_STR;
         } else {
-            printf(" [Error]");
-            return true;
+            return TOKEN_ERROR;
         }
     }
     if (is_number(*caret)) {
-        int data = read_int();
+        char* old_caret = caret;
+        int_data = read_int();
+        if (*caret == '.') {
+            caret++;
+            while (is_number(*caret)) {
+                caret++;
+            }
+            if (*caret == 'e' || *caret == 'E') {
+                caret++;
+                if (*caret == '-') {
+                    caret++;
+                }
+                while (is_number(*caret)) {
+                    caret++;
+                }
+            }
+            string_buffer_length = caret - old_caret;
+            memcpy(string_buffer, old_caret, string_buffer_length);
+            string_buffer[string_buffer_length] = '\0';
+            return TOKEN_FLOAT;
+        }
         if (is_divider()) {
-            printf(" [INT: %d]", data);
-            return false;
+            return TOKEN_INT;
         } else {
-            printf(" [Error]");
-            return true;
+            return TOKEN_ERROR;
         }
     }
-    // TODO float numbers
     if (is_alpha(*caret)) {
         read_name();
-        char sigil = '\0';
+        sigil = '\0';
         if (*caret == '$' || *caret == '#' || *caret == '!' || *caret == '%') {
             sigil = *caret;
             caret++;
         }
         if (!is_divider()) {
-            printf(" [Error]");
-            return true;
+            return TOKEN_ERROR;
         }
         for (int i = 0; i < KEYWORD_COUNT; i++) {
             if (strcmp(string_buffer, keywords[i]) == 0) {
-                printf(" [KEYWORD: \"%s\"]", keywords[i]);
-                return false;
+                return TOKEN_KEYWORD + i;
             }
         }
-        if (sigil != '\0') {
-            printf(" [NAME: \"%s\" %c (%d)]", string_buffer, sigil, string_buffer_length);
-        } else {
-            printf(" [NAME: \"%s\" (%d)]", string_buffer, string_buffer_length);
-        }
-        return false;
+        return TOKEN_NAME;
     }
     int smltk;
     if ((smltk = is_small_token()) >= 0) {
-        printf(" [ %s ]", small_tokens[smltk]);
-        return false;
+        return smltk;
     }
-    printf(" [Error]");
-    return true;
+    return TOKEN_ERROR;
 }
 
 void get_input() {
@@ -393,13 +406,47 @@ bool working;
 
 void process_input() {
     caret = input_buffer;
-    while (true) {
-        if (get_token()) {
-            break;
+    char* shcaret = shrink_line;
+    shrink_line_length = 0;
+    bool process = true;
+    while (process) {
+        TokenType token = get_token();
+        switch (token) {
+            case TOKEN_ERROR:
+                printf("Error");
+                return;
+            case TOKEN_EOF:
+                process = false;
+                break;
+            case TOKEN_NAME:
+            case TOKEN_STR:
+            case TOKEN_FLOAT:
+                *shcaret = token;
+                shcaret++;
+                if (token == TOKEN_NAME) {
+                    *shcaret = sigil;
+                    shcaret++;
+                }
+                *shcaret = string_buffer_length;
+                shcaret++;
+                memcpy(shcaret, string_buffer, string_buffer_length);
+                shcaret += string_buffer_length;
+                break;
+            case TOKEN_INT:
+                *shcaret = token;
+                shcaret++;
+                memcpy(shcaret, &int_data, 4);
+                shcaret += 4;
+                break;
+
+            default:
+                *shcaret = token;
+                shcaret++;
+                break;
         }
         skip_spaces();
     }
-    printf("\n");
+    shrink_line_length = shcaret - (char*)shrink_line;
 }
 
 int main() {
@@ -408,6 +455,10 @@ int main() {
     while (working) {
         get_input();
         process_input();
+        for (int i = 0; i < shrink_line_length; i++) {
+            printf("[%d (%c)]\n", shrink_line[i], shrink_line[i]);
+        }
+        printf("\n");
     }
     return 0;
 }
