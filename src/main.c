@@ -40,7 +40,7 @@ typedef enum TokenType {
     TOKEN_FLOAT,
     TOKEN_DOUBLE,
     TOKEN_ERROR,
-    TOKEN_EOF,
+    TOKEN_EOL,
     TOKEN_KEYWORD,
 } TokenType;
 
@@ -315,7 +315,7 @@ void skip_spaces() {
 
 TokenType get_token() {
     if (*caret == '\0') {
-        return TOKEN_EOF;
+        return TOKEN_EOL;
     }
     if (*caret == '"') {
         if (!read_string()) {
@@ -407,15 +407,17 @@ bool working;
 void process_input() {
     caret = input_buffer;
     char* shcaret = shrink_line;
-    shrink_line_length = 0;
     bool process = true;
     while (process) {
         TokenType token = get_token();
         switch (token) {
             case TOKEN_ERROR:
+                shrink_line_length = 0;
                 printf("Error");
                 return;
-            case TOKEN_EOF:
+            case TOKEN_EOL:
+                *shcaret = token;
+                shcaret++;
                 process = false;
                 break;
             case TOKEN_NAME:
@@ -488,6 +490,9 @@ void print_shrink_line() {
                 print_string(&point);
                 break;
 
+            case TOKEN_EOL:
+                return;
+
             default:
                 if (token >= TOKEN_KEYWORD) {
                     printf("%s", keywords[token - TOKEN_KEYWORD]);
@@ -496,11 +501,7 @@ void print_shrink_line() {
                 }
                 break;
         }
-        if (point - shrink_line < shrink_line_length) {
-            printf(" ");
-        } else {
-            break;
-        }
+        printf(" ");
     }
 }
 
