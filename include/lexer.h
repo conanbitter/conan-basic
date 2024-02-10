@@ -87,7 +87,8 @@ typedef enum TokenKeyword {
     KW_XOR
 } TokenKeyword;
 
-uint8_t* shrink_line(const char* input);
+uint8_t* shrink_line(const char* input, size_t* length);
 void print_shrinked_line(const uint8_t* line);
+const uint8_t* get_int(const uint8_t* line, uint32_t* value);
 
 #endif

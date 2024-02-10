@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "lexer.h"
+#include "document.h"
 
 #define INPUT_BUFFER_SIZE 256
 
@@ -39,12 +40,23 @@ bool working;
 
 int main() {
     printf("Hello world!\n");
+    doc_clear();
     working = true;
     while (working) {
         get_input();
-        uint8_t* line = shrink_line(input_buffer);
-        print_shrinked_line(line);
-        printf("\n");
+        size_t line_length;
+        const uint8_t* line = shrink_line(input_buffer, &line_length);
+        if (*line == TOKEN_INT) {
+            uint32_t number;
+            line = get_int(line, &number);
+            line_length -= 5;
+            doc_set_line(number, line, line_length);
+        } else if (*line == TOKEN_KEYWORD + KW_LIST) {
+            doc_list();
+        } else {
+            print_shrinked_line(line);
+            printf("\n");
+        }
     }
     return 0;
 }

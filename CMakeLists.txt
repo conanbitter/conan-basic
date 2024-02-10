@@ -4,11 +4,13 @@ project(cbasic VERSION 0.1 LANGUAGES C)
 
 set(INCLUDE_FILES
     lexer.h
+    document.h
 )
 
 set(SRC_FILES
     main.c
     lexer.c
+    document.c
 )
 
 set(EXECUTABLE_OUTPUT_PATH ./${CMAKE_BUILD_TYPE})

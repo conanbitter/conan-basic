@@ -288,7 +288,7 @@ static TokenType get_token() {
     return TOKEN_ERROR;
 }
 
-uint8_t* shrink_line(const char* input) {
+uint8_t* shrink_line(const char* input, size_t* length) {
     caret = input;
     char* shcaret = shrinked_line;
     bool process = true;
@@ -299,6 +299,9 @@ uint8_t* shrink_line(const char* input) {
                 shrinked_line_length = 0;
                 shrinked_line[0] = TOKEN_ERROR;
                 printf("Error");
+                if (length != NULL) {
+                    *length = 0;
+                }
                 return shrinked_line;
             case TOKEN_EOL:
                 *shcaret = token;
@@ -334,6 +337,9 @@ uint8_t* shrink_line(const char* input) {
         skip_spaces();
     }
     shrinked_line_length = shcaret - (char*)shrinked_line;
+    if (length != NULL) {
+        *length = shrinked_line_length;
+    }
     return shrinked_line;
 }
 
@@ -388,5 +394,14 @@ void print_shrinked_line(const uint8_t* line) {
                 break;
         }
         printf(" ");
+    }
+}
+
+const uint8_t* get_int(const uint8_t* line, uint32_t* value) {
+    if (*line == TOKEN_INT) {
+        memcpy(value, line + 1, 4);
+        return line + 1 + 4;
+    } else {
+        return NULL;
     }
 }
