@@ -1,5 +1,7 @@
 #include "lexer.h"
 #include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
 
 static const char* const small_tokens[] = {
     ",",
@@ -77,7 +79,7 @@ static char string_buffer[STRING_BUFFER_SIZE];
 static int string_buffer_length;
 static uint8_t shrinked_line[SHRINK_LINE_SIZE];
 static int shrinked_line_length;
-static int32_t int_data;
+static uint32_t int_data;
 static char sigil;
 
 static const char* caret;
@@ -167,8 +169,8 @@ static int is_small_token() {
     }
 }
 
-static int read_int() {
-    int result = 0;
+static uint32_t read_int() {
+    uint32_t result = 0;
     while (*caret != '\0' && is_number(*caret)) {
         result = result * 10 + *caret - '0';
         caret++;
@@ -274,6 +276,14 @@ static TokenType get_token() {
         if (!is_divider()) {
             return TOKEN_ERROR;
         }
+        if (strcmp(string_buffer, "REM") == 0 && is_space(*caret)) {
+            skip_spaces();
+            strcpy(string_buffer, caret);
+            string_buffer_length = strlen(string_buffer);
+            caret += string_buffer_length;
+            printf("%c", *caret);
+            return TOKEN_REM;
+        }
         for (int i = 0; i < KEYWORD_COUNT; i++) {
             if (strcmp(string_buffer, keywords[i]) == 0) {
                 return TOKEN_KEYWORD + i;
@@ -311,6 +321,7 @@ uint8_t* shrink_line(const char* input, size_t* length) {
             case TOKEN_NAME:
             case TOKEN_STR:
             case TOKEN_FLOAT:
+            case TOKEN_REM:
                 *shcaret = token;
                 shcaret++;
                 if (token == TOKEN_NAME) {
@@ -366,7 +377,7 @@ void print_shrinked_line(const uint8_t* line) {
                 break;
 
             case TOKEN_INT:
-                int32_t data;
+                uint32_t data;
                 memcpy(&data, point, 4);
                 printf("%d", data);
                 point += 4;
@@ -379,6 +390,11 @@ void print_shrinked_line(const uint8_t* line) {
                 break;
 
             case TOKEN_FLOAT:
+                print_string(&point);
+                break;
+
+            case TOKEN_REM:
+                printf("REM ");
                 print_string(&point);
                 break;
 

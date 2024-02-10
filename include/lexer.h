@@ -30,6 +30,7 @@ typedef enum TokenType {
     TOKEN_STR,
     TOKEN_FLOAT,
     TOKEN_DOUBLE,
+    TOKEN_REM,
     TOKEN_ERROR,
     TOKEN_EOL,
     TOKEN_KEYWORD,
